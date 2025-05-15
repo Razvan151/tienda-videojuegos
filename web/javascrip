@@ -1,0 +1,121 @@
+const registroContainer = document.getElementById('registro-container');
+const tiendaContainer = document.getElementById('tienda-container');
+const btnRegistrar = document.getElementById('btn-registrar');
+const inputUsuario = document.getElementById('username');
+const bienvenida = document.getElementById('bienvenida');
+const carritoToggle = document.getElementById('carrito-toggle');
+const carritoDiv = document.getElementById('carrito');
+const listaCarrito = document.getElementById('lista-carrito');
+const totalCarrito = document.getElementById('total');
+const logoutBtn = document.getElementById('logout-btn');
+const productos = document.querySelectorAll('.producto');
+
+let carrito = [];
+let usuario = localStorage.getItem('usuario');
+
+function mostrarTienda() {
+  registroContainer.style.display = 'none';
+  tiendaContainer.style.display = 'block';
+  bienvenida.textContent = `Tienda de Videojuegos - Bienvenido, ${usuario}`;
+  cargarCarritoDeLocalStorage();
+  actualizarCarrito();
+}
+
+if(usuario) {
+  mostrarTienda();
+} else {
+  registroContainer.style.display = 'block';
+  tiendaContainer.style.display = 'none';
+}
+
+btnRegistrar.onclick = () => {
+  const nombre = inputUsuario.value.trim();
+  if(nombre.length < 3) {
+    alert('El nombre debe tener al menos 3 caracteres.');
+    return;
+  }
+  localStorage.setItem('usuario', nombre);
+  usuario = nombre;
+  mostrarTienda();
+};
+
+// Carrito funciones
+function agregarAlCarrito(nombre, precio) {
+  carrito.push({nombre, precio});
+  guardarCarrito();
+  actualizarCarrito();
+  alert(`${nombre} agregado al carrito.`);
+}
+
+function actualizarCarrito() {
+  listaCarrito.innerHTML = '';
+  let total = 0;
+  carrito.forEach((item, index) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>${item.nombre}</strong> - $${item.precio.toFixed(2)} <button class="boton-eliminar">Quitar</button>`;
+    li.querySelector('button').onclick = () => {
+      carrito.splice(index, 1);
+      guardarCarrito();
+      actualizarCarrito();
+    };
+    listaCarrito.appendChild(li);
+    total += item.precio;
+  });
+  totalCarrito.innerHTML = `<strong>Total: $${total.toFixed(2)}</strong>`;
+}
+
+function guardarCarrito() {
+  localStorage.setItem('carrito', JSON.stringify(carrito));
+}
+
+function cargarCarritoDeLocalStorage() {
+  const data = localStorage.getItem('carrito');
+  if(data) {
+    carrito = JSON.parse(data);
+  } else {
+    carrito = [];
+  }
+}
+
+carritoToggle.onclick = () => {
+  carritoDiv.style.display = carritoDiv.style.display === 'block' ? 'none' : 'block';
+};
+
+logoutBtn.onclick = () => {
+  if(confirm('¿Quieres cerrar sesión?')) {
+    localStorage.removeItem('usuario');
+    localStorage.removeItem('carrito');
+    location.reload();
+  }
+};
+
+// Manejo botones comprar y reseñas
+productos.forEach(producto => {
+  const btnComprar = producto.querySelector('.boton-comprar');
+  const btnReseña = producto.querySelector('.boton-reseña');
+  const textarea = producto.querySelector('textarea');
+  const reseñaDiv = producto.querySelector('.reseña');
+
+  btnComprar.onclick = () => {
+    const nombre = producto.querySelector('h2').textContent;
+    const precioText = producto.querySelector('.precio').textContent;
+    const precio = parseFloat(precioText.replace('Precio: $', ''));
+    agregarAlCarrito(nombre, precio);
+  };
+
+  btnReseña.onclick = () => {
+    const texto = textarea.value.trim();
+    if(texto.length < 5) {
+      alert('Escribe una reseña más larga, por favor.');
+      return;
+    }
+    // Añadimos el nombre de usuario a la reseña
+    const nuevaReseña = `"${texto}" - ${usuario}`;
+    // Crear nuevo div para la reseña debajo de las existentes
+    const nuevaDiv = document.createElement('div');
+    nuevaDiv.className = 'reseña';
+    nuevaDiv.textContent = nuevaReseña;
+    producto.insertBefore(nuevaDiv, textarea);
+    textarea.value = '';
+  };
+});
